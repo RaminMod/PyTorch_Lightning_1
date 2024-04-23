@@ -78,18 +78,32 @@ def check_accuracy(loader, model):
     # We don't need to compute gradients when checking accuracy so we use torch.no_grad
     with torch.no_grad():
         for x, y in loader:
+            # Move data to device
             x = x.to(device=device)
             y = y.to(device=device)
-
+            
+            # Get to correct shape
             x = x.reshape(x.shape[0], -1)
 
+            # Forward pass
             scores = model(x)
             _, predictions = scores.max(1)
+
+            # Check how many predictions are correct
             num_correct += (predictions == y).sum()
+
+            # Check how many samples are there in this batch
             num_samples += predictions.size(0)
 
     model.train()
     return num_correct/num_samples
+
+# Check accuracy on training & validation to see how good our model
+model.to(device)
+print(f"Accuracy on training set: {check_accuracy(train_loader, model)*100:.2f}")
+print(f"Accuracy on validation set: {check_accuracy(val_loader, model)*100:.2f}")
+print(f"Accuracy on test set: {check_accuracy(test_loader, model)*100:.2f}")
+```
 
 
 
