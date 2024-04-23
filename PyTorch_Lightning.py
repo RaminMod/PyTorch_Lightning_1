@@ -18,4 +18,82 @@ class NN(nn.Module):
         x = self.fc2(x)
         return x
     
+# Set device cuda for GPU if it is available otherwise use CPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Hyperparameters
+input_size = 784
+num_classes = 10
+learning_rate = 0.001
+batch_size = 64
+num_epochs = 3
+
+# Load Data
+entire_dataset = datasets.MNIST(root="dataset/", train=True, transform=transforms.ToTensor(), download=True)
+
+# Split data into train and validation
+train_ds, val_ds = random_split(entire_dataset, [50000, 10000])
+# Load test data
+test_ds = datasets.MNIST(root="dataset/", train=False, transform=transforms.ToTensor(), download=True)
+
+# Initialize model
+train_loader = DataLoader(dataset=train_ds, batch_size=batch_size, shuffle=True)
+val_loader = DataLoader(dataset=val_ds, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(dataset=test_ds, batch_size=batch_size, shuffle=True)
+
+# Initialize network
+model = NN(input_size=input_size, num_classes=num_classes).to(device)
+
+# Loss and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+# Train Network
+for epoch in range(num_epochs):
+    for batch_idx, (data, targets) in enumerate(tqdm(train_loader)):
+        # Get data to cuda if possible
+        data = data.to(device=device)
+        targets = targets.to(device=device)
+
+        # Get to correct shape
+        data = data.reshape(data.shape[0], -1)
+
+        # Forward
+        scores = model(data)
+        loss = criterion(scores, targets)
+
+        # Backward
+        optimizer.zero_grad()
+        loss.backward()
+
+        # Gradient descent or adam step
+        optimizer.step()
+    
+# Check accuracy on training & validation to see how good our model
+def check_accuracy(loader, model):
+    num_correct = 0
+    num_samples = 0
+    model.eval()
+
+    # We don't need to compute gradients when checking accuracy so we use torch.no_grad
+    with torch.no_grad():
+        for x, y in loader:
+            x = x.to(device=device)
+            y = y.to(device=device)
+
+            x = x.reshape(x.shape[0], -1)
+
+            scores = model(x)
+            _, predictions = scores.max(1)
+            num_correct += (predictions == y).sum()
+            num_samples += predictions.size(0)
+
+    model.train()
+    return num_correct/num_samples
+
+
+
+
+
+
 
